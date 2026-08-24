@@ -90,10 +90,7 @@ function App() {
             <div className="hero-signature" aria-hidden="true">ELY <span>—</span> CONCEPT</div>
           </div>
           <figure className="hero-media">
-            <picture>
-              <source media="(max-width: 720px)" srcSet={`${ASSET}hero-blonde-720.webp`} />
-              <img src={`${ASSET}hero-blonde.webp`} width="1162" height="1536" alt="Cabelo loiro longo com ondas e acabamento luminoso" fetchPriority="high" />
-            </picture>
+            <img src={`${ASSET}hero-blonde.avif`} width="760" height="1005" alt="Cabelo loiro longo com ondas e acabamento luminoso" fetchPriority="high" />
             <figcaption><span>01</span> Textura, luz e movimento</figcaption>
           </figure>
         </section>
@@ -116,16 +113,16 @@ function App() {
           </div>
           <div className="editorial-grid">
             <figure className="work work-main" data-reveal>
-              <picture><source media="(max-width: 720px)" srcSet={`${ASSET}blonde-detail-720.webp`} /><img src={`${ASSET}blonde-detail.webp`} width="907" height="1536" loading="lazy" alt="Cabelo loiro com mechas e ondas visto de costas dentro do salão" /></picture>
+              <img src={`${ASSET}blonde-detail.avif`} width="640" height="1084" loading="lazy" alt="Cabelo loiro com mechas e ondas visto de costas dentro do salão" />
               <figcaption><span>Hair</span><b>Loiros em foco</b></figcaption>
             </figure>
             <figure className="work work-color" data-reveal>
-              <picture><source media="(max-width: 720px)" srcSet={`${ASSET}nails-color-720.webp`} /><img src={`${ASSET}nails-color.webp`} width="1162" height="1536" loading="lazy" alt="Unhas em tons rosa, lilás e azul com acabamento brilhante" /></picture>
+              <img src={`${ASSET}nails-color.avif`} width="600" height="793" loading="lazy" alt="Unhas em tons rosa, lilás e azul com acabamento brilhante" />
               <figcaption><span>Detail</span><b>Cor em contraste</b></figcaption>
             </figure>
             <div className="portfolio-note" data-reveal><span>ELY / 02</span><p>Da transformação maior ao detalhe mais preciso, cada imagem constrói a identidade do espaço.</p></div>
             <figure className="work work-red" data-reveal>
-              <picture><source media="(max-width: 720px)" srcSet={`${ASSET}nails-red-gold-720.webp`} /><img src={`${ASSET}nails-red-gold.webp`} width="1400" height="1536" loading="lazy" alt="Unhas vermelhas com detalhes dourados" /></picture>
+              <img src={`${ASSET}nails-red-gold.avif`} width="600" height="659" loading="lazy" alt="Unhas vermelhas com detalhes dourados" />
               <figcaption><span>Detail</span><b>Vermelho & dourado</b></figcaption>
             </figure>
           </div>
@@ -164,7 +161,7 @@ function App() {
 
         <section className="location" id="localizacao" aria-labelledby="location-title">
           <figure className="location-image" data-reveal>
-            <picture><source media="(max-width: 720px)" srcSet={`${ASSET}facade-720.webp`} /><img src={`${ASSET}facade.webp`} width="1536" height="1075" loading="lazy" alt="Fachada real do espaço associado à Ely Concept em Feira de Santana" /></picture>
+            <img src={`${ASSET}facade.avif`} width="700" height="490" loading="lazy" alt="Fachada real do espaço associado à Ely Concept em Feira de Santana" />
             <figcaption>Registro real do espaço</figcaption>
           </figure>
           <div className="location-content" data-reveal>
