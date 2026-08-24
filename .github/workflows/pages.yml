@@ -1,4 +1,4 @@
-name: Build and deploy Ely Concept
+name: Verify Ely Concept
 
 on:
   push:
@@ -10,12 +10,9 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
-  statuses: write
 
 concurrency:
-  group: pages-${{ github.ref }}-${{ github.event.action || 'run' }}
+  group: verify-${{ github.ref }}-${{ github.event.action || 'run' }}
   cancel-in-progress: true
 
 jobs:
@@ -43,73 +40,23 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Configure Pages
-        if: github.event_name != 'pull_request' || (github.event.action == 'closed' && github.event.pull_request.merged == true)
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
-
-      - name: Upload Pages artifact
-        if: github.event_name != 'pull_request' || (github.event.action == 'closed' && github.event.pull_request.merged == true)
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
-
-  deploy:
-    if: github.event_name != 'pull_request' || (github.event.action == 'closed' && github.event.pull_request.merged == true)
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
+  request-deploy:
+    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true)
     needs: build
-    outputs:
-      page_url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-  smoke-test:
-    if: always() && (github.event_name != 'pull_request' || (github.event.action == 'closed' && github.event.pull_request.merged == true))
     runs-on: ubuntu-latest
-    needs: deploy
-    env:
-      PAGE_URL: ${{ needs.deploy.outputs.page_url }}
-      DEPLOY_RESULT: ${{ needs.deploy.result }}
+    permissions:
+      contents: write
     steps:
-      - name: Verify published page and hero asset
-        id: smoke
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -euo pipefail
-          test "$DEPLOY_RESULT" = "success"
-          test -n "$PAGE_URL"
-          PAGE_URL="${PAGE_URL%/}/"
-          HTML="$(curl -fsSL --retry 12 --retry-delay 5 --retry-all-errors "$PAGE_URL")"
-          printf '%s' "$HTML" | grep -q 'Ely Concept'
-          curl -fsSL --retry 12 --retry-delay 5 --retry-all-errors -o /dev/null "${PAGE_URL}assets/hero-blonde.avif"
-
-      - name: Publish Pages smoke-test status
-        if: always()
+      - name: Request main-branch Pages deployment
         uses: actions/github-script@v7
-        env:
-          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
         with:
           script: |
-            const ok = process.env.SMOKE_OUTCOME === 'success';
-            await github.rest.repos.createCommitStatus({
+            await github.rest.repos.createDispatchEvent({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              sha: context.sha,
-              state: ok ? 'success' : 'failure',
-              context: 'pages-smoke-test',
-              description: ok
-                ? 'GitHub Pages and hero asset responded successfully'
-                : 'Deploy or published page smoke test failed',
-              target_url: process.env.PAGE_URL || `https://github.com/${context.repo.owner}/${context.repo.repo}/actions`,
+              event_type: 'deploy-pages',
+              client_payload: {
+                requested_by: context.eventName,
+                source_sha: context.sha,
+              },
             });
-
-      - name: Fail workflow when smoke test fails
-        if: steps.smoke.outcome != 'success'
-        run: exit 1
