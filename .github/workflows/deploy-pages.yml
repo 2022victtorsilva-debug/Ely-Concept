@@ -6,9 +6,8 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
-  id-token: write
   statuses: write
 
 concurrency:
@@ -16,8 +15,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
+    env:
+      PAGE_URL: https://2022victtorsilva-debug.github.io/Ely-Concept/
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -41,49 +42,47 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
+      - name: Publish production files to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          enablement: true
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          force_orphan: true
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Configure GitHub Pages to serve gh-pages
+        uses: actions/github-script@v7
         with:
-          path: ./dist
+          script: |
+            const params = {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            };
+            try {
+              await github.rest.repos.getPages(params);
+              await github.rest.repos.updateInformationAboutPagesSite({
+                ...params,
+                build_type: 'legacy',
+                source: { branch: 'gh-pages', path: '/' },
+              });
+            } catch (error) {
+              if (error.status !== 404) throw error;
+              await github.rest.repos.createPagesSite({
+                ...params,
+                build_type: 'legacy',
+                source: { branch: 'gh-pages', path: '/' },
+              });
+            }
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    outputs:
-      page_url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
-  smoke-test:
-    if: always()
-    runs-on: ubuntu-latest
-    needs: deploy
-    env:
-      PAGE_URL: ${{ needs.deploy.outputs.page_url }}
-      DEPLOY_RESULT: ${{ needs.deploy.result }}
-    steps:
       - name: Verify published page and hero asset
         id: smoke
         continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
-          test "$DEPLOY_RESULT" = "success"
-          test -n "$PAGE_URL"
-          PAGE_URL="${PAGE_URL%/}/"
-          HTML="$(curl -fsSL --retry 12 --retry-delay 5 --retry-all-errors "$PAGE_URL")"
+          HTML="$(curl -fsSL --retry 18 --retry-delay 5 --retry-all-errors "$PAGE_URL")"
           printf '%s' "$HTML" | grep -q 'Ely Concept'
-          curl -fsSL --retry 12 --retry-delay 5 --retry-all-errors -o /dev/null "${PAGE_URL}assets/hero-blonde.avif"
+          curl -fsSL --retry 18 --retry-delay 5 --retry-all-errors -o /dev/null "${PAGE_URL}assets/hero-blonde.avif"
 
       - name: Publish Pages smoke-test status
         if: always()
@@ -101,8 +100,8 @@ jobs:
               context: 'pages-smoke-test',
               description: ok
                 ? 'GitHub Pages and hero asset responded successfully'
-                : 'Deploy or published page smoke test failed',
-              target_url: process.env.PAGE_URL || `https://github.com/${context.repo.owner}/${context.repo.repo}/actions`,
+                : 'Published page smoke test failed',
+              target_url: process.env.PAGE_URL,
             });
 
       - name: Fail workflow when smoke test fails
