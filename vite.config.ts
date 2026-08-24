@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
-  base: '/Ely-Concept/',
+  base: '/Instituto-Layla/',
   build: {
     target: 'es2022',
     cssMinify: true,

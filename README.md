@@ -1,12 +1,12 @@
-# Ely Concept
+# Instituto Layla Cerqueira
 
-Site comercial premium da **Ely Concept**, salão de beleza em Feira de Santana - BA.
+Site comercial do **Instituto Layla Cerqueira**, em Feira de Santana, BA.
 
 ## Stack
 
 - React + TypeScript
 - Vite
-- CSS editorial responsivo, sem framework visual pesado
+- CSS responsivo e animação Beauty Reveal
 - GitHub Pages via GitHub Actions
 
 ## Desenvolvimento
@@ -24,10 +24,10 @@ npm run lint
 npm run build
 ```
 
-O workflow executa essas verificações automaticamente em pull requests. Depois de um build aprovado, o `dist` é enviado como artifact oficial do GitHub Pages, publicado pelo `actions/deploy-pages` em um ambiente dedicado e validado por um smoke test HTTP da página e da imagem principal.
+O workflow valida o código e publica o conteúdo de `dist` no GitHub Pages. A publicação também executa um smoke test da página e da imagem principal.
 
-## Configuração do negócio
+## Publicação
 
-Dados de contato, localização e mensagens ficam centralizados em `src/config.ts`.
+O Vite usa `base: '/Instituto-Layla/'`, correspondente ao endereço:
 
-O projeto usa `base: '/Ely-Concept/'` no Vite para evitar tela branca e caminhos quebrados no GitHub Pages.
+`https://2022victtorsilva-debug.github.io/Instituto-Layla/`

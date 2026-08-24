@@ -1,4 +1,4 @@
-name: Deploy Ely Concept Pages
+name: Deploy Instituto Layla Pages
 
 on:
   repository_dispatch:
@@ -23,7 +23,7 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     env:
       TARGET_SHA: ${{ github.event.client_payload.source_sha || github.sha }}
-      FALLBACK_PAGE_URL: https://2022victtorsilva-debug.github.io/Ely-Concept/
+      FALLBACK_PAGE_URL: https://2022victtorsilva-debug.github.io/Instituto-Layla/
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -74,8 +74,8 @@ jobs:
           PAGE_URL="${PAGE_URL:-$FALLBACK_PAGE_URL}"
           PAGE_URL="${PAGE_URL%/}/"
           HTML="$(curl -fsSL --retry 24 --retry-delay 5 --retry-all-errors "$PAGE_URL")"
-          printf '%s' "$HTML" | grep -q 'Ely Concept'
-          curl -fsSL --retry 24 --retry-delay 5 --retry-all-errors -o /dev/null "${PAGE_URL}assets/hero-blonde.avif"
+          printf '%s' "$HTML" | grep -q 'Instituto Layla Cerqueira'
+          curl -fsSL --retry 24 --retry-delay 5 --retry-all-errors -o /dev/null "${PAGE_URL}images/layla-hero.webp"
 
       - name: Publish Pages smoke-test status
         if: always()
