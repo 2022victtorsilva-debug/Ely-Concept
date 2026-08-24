@@ -24,6 +24,8 @@ npm run lint
 npm run build
 ```
 
+O workflow também executa essas verificações automaticamente em pull requests antes do deploy.
+
 ## Configuração do negócio
 
 Dados de contato, localização e mensagens ficam centralizados em `src/config.ts`.
