@@ -6,8 +6,9 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   pages: write
+  id-token: write
   statuses: write
 
 concurrency:
@@ -17,9 +18,12 @@ concurrency:
 jobs:
   publish:
     runs-on: ubuntu-latest
+    environment:
+      name: ely-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     env:
-      PAGE_URL: https://2022victtorsilva-debug.github.io/Ely-Concept/
       TARGET_SHA: ${{ github.event.client_payload.source_sha || github.sha }}
+      FALLBACK_PAGE_URL: https://2022victtorsilva-debug.github.io/Ely-Concept/
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -43,79 +47,66 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Prepare static site
-        run: touch dist/.nojekyll
-
-      - name: Publish dist to gh-pages
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          git -C dist init
-          git -C dist config user.name "github-actions[bot]"
-          git -C dist config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git -C dist add -A
-          git -C dist commit -m "deploy: Ely Concept ${GITHUB_SHA}"
-          git -C dist branch -M gh-pages
-          git -C dist remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
-          git -C dist push --force origin gh-pages
-
-      - name: Configure GitHub Pages to serve gh-pages
-        uses: actions/github-script@v7
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
         with:
-          script: |
-            const owner = context.repo.owner;
-            const repo = context.repo.repo;
-            const source = { branch: 'gh-pages', path: '/' };
-            try {
-              await github.request('PUT /repos/{owner}/{repo}/pages', {
-                owner,
-                repo,
-                build_type: 'legacy',
-                source,
-              });
-            } catch (error) {
-              if (error.status !== 404) throw error;
-              await github.request('POST /repos/{owner}/{repo}/pages', {
-                owner,
-                repo,
-                source,
-              });
-            }
+          enablement: true
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ./dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@v4
 
       - name: Verify published page and hero asset
         id: smoke
+        if: steps.deployment.outcome == 'success'
         continue-on-error: true
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
         shell: bash
         run: |
           set -euo pipefail
-          HTML="$(curl -fsSL --retry 36 --retry-delay 5 --retry-all-errors "$PAGE_URL")"
+          PAGE_URL="${PAGE_URL:-$FALLBACK_PAGE_URL}"
+          PAGE_URL="${PAGE_URL%/}/"
+          HTML="$(curl -fsSL --retry 24 --retry-delay 5 --retry-all-errors "$PAGE_URL")"
           printf '%s' "$HTML" | grep -q 'Ely Concept'
-          curl -fsSL --retry 36 --retry-delay 5 --retry-all-errors -o /dev/null "${PAGE_URL}assets/hero-blonde.avif"
+          curl -fsSL --retry 24 --retry-delay 5 --retry-all-errors -o /dev/null "${PAGE_URL}assets/hero-blonde.avif"
 
       - name: Publish Pages smoke-test status
         if: always()
         uses: actions/github-script@v7
         env:
+          DEPLOY_OUTCOME: ${{ steps.deployment.outcome }}
           SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
           TARGET_SHA: ${{ env.TARGET_SHA }}
-          PAGE_URL: ${{ env.PAGE_URL }}
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          FALLBACK_PAGE_URL: ${{ env.FALLBACK_PAGE_URL }}
         with:
           script: |
-            const ok = process.env.SMOKE_OUTCOME === 'success';
+            const deployOk = process.env.DEPLOY_OUTCOME === 'success';
+            const smokeOk = process.env.SMOKE_OUTCOME === 'success';
+            const ok = deployOk && smokeOk;
+            const targetUrl = process.env.PAGE_URL || process.env.FALLBACK_PAGE_URL;
+            const description = ok
+              ? 'GitHub Pages and hero asset responded successfully'
+              : !deployOk
+                ? 'GitHub Pages deployment action failed'
+                : 'Deployment succeeded but HTTP smoke test failed';
             await github.rest.repos.createCommitStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,
               sha: process.env.TARGET_SHA,
               state: ok ? 'success' : 'failure',
               context: 'pages-smoke-test',
-              description: ok
-                ? 'Published page and hero asset responded successfully'
-                : 'gh-pages publication or HTTP smoke test failed',
-              target_url: process.env.PAGE_URL,
+              description,
+              target_url: targetUrl,
             });
 
-      - name: Fail workflow when smoke test fails
-        if: steps.smoke.outcome != 'success'
+      - name: Fail workflow when deploy or smoke test fails
+        if: steps.deployment.outcome != 'success' || steps.smoke.outcome != 'success'
         run: exit 1
