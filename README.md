@@ -24,7 +24,7 @@ npm run lint
 npm run build
 ```
 
-O workflow também executa essas verificações automaticamente em pull requests antes do deploy. A publicação é solicitada somente após um build aprovado, publica o `dist` no branch `gh-pages` e faz um smoke test da página publicada e da imagem principal.
+O workflow também executa essas verificações automaticamente em pull requests antes do deploy. A publicação é solicitada somente após um build aprovado, envia o `dist` como artifact oficial do GitHub Pages e faz um smoke test da página publicada e da imagem principal.
 
 ## Configuração do negócio
 
