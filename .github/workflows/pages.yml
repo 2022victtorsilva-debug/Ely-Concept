@@ -11,6 +11,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  statuses: write
 
 concurrency:
   group: pages-${{ github.ref }}
@@ -59,7 +60,52 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     needs: build
+    outputs:
+      page_url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+
+  smoke-test:
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    needs: deploy
+    env:
+      PAGE_URL: ${{ needs.deploy.outputs.page_url }}
+    steps:
+      - name: Verify published page and hero asset
+        id: smoke
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -n "$PAGE_URL"
+          PAGE_URL="${PAGE_URL%/}/"
+          HTML="$(curl -fsSL --retry 12 --retry-delay 5 --retry-all-errors "$PAGE_URL")"
+          printf '%s' "$HTML" | grep -q 'Ely Concept'
+          curl -fsSL --retry 12 --retry-delay 5 --retry-all-errors -o /dev/null "${PAGE_URL}assets/hero-blonde.avif"
+
+      - name: Publish Pages smoke-test status
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          SMOKE_OUTCOME: ${{ steps.smoke.outcome }}
+        with:
+          script: |
+            const ok = process.env.SMOKE_OUTCOME === 'success';
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.sha,
+              state: ok ? 'success' : 'failure',
+              context: 'pages-smoke-test',
+              description: ok
+                ? 'GitHub Pages and hero asset responded successfully'
+                : 'Published page smoke test failed',
+              target_url: process.env.PAGE_URL,
+            });
+
+      - name: Fail workflow when smoke test fails
+        if: steps.smoke.outcome != 'success'
+        run: exit 1
