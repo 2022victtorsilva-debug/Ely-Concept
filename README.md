@@ -24,7 +24,7 @@ npm run lint
 npm run build
 ```
 
-O workflow também executa essas verificações automaticamente em pull requests antes do deploy.
+O workflow também executa essas verificações automaticamente em pull requests antes do deploy e faz um smoke test da página publicada e da imagem principal após a publicação.
 
 ## Configuração do negócio
 
